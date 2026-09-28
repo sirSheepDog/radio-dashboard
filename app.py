@@ -106,6 +106,9 @@ def start_local(application):
     environment["XAUTHORITY"] = XAUTHORITY
     environment["HOME"] = HOME_DIRECTORY
 
+    launch_environment = application.get("launch", {}).get("environment", {})
+    environment.update(launch_environment)
+
     try:
         subprocess.Popen(
             command,

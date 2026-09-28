@@ -38,6 +38,8 @@ applications:
       command:
         - /opt/open-sstv/open-sstv
       process: /opt/open-sstv/open-sstv
+      environment:
+        QT_SCALE_FACTOR: "0.625"
     interface:
       type: local
       qr: false
