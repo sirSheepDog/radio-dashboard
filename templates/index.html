@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Radio Station</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .status.running {
+            color: #2ecc71;
+        }
+
+        .status.stopped {
+            color: #e74c3c;
+        }
+
+        .status.failed {
+            color: #f39c12;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="title">RADIO STATION - {{ station.callsign|default('NO CALLSIGN') }}</div>
+
+    <div class="system">
+        CPU <span id="cpu-value">{{ cpu|round|int }}</span>%
+        &nbsp;&nbsp;
+        RAM <span id="memory-value">{{ memory|round|int }}</span>%
+    </div>
+</header>
+
+
+<main>
+
+    {% for application in applications %}
+
+    <div class="app-card"
+         id="app-{{ application.id }}"
+         data-app-id="{{ application.id }}"
+         data-app-type="{{ application.type }}"
+         data-interface-type="{{ application.interface.type }}"
+         data-interface-url="{{ application.interface.url|default('') }}">
+
+        <div class="app-name">
+            {{ application.name }}
+        </div>
+
+        <div class="status {{ application.status }}"
+             id="status-{{ application.id }}">
+
+            {% if application.status == "running" %}
+                ● RUNNING
+            {% elif application.status == "failed" %}
+                ● FAILED
+            {% else %}
+                ● STOPPED
+            {% endif %}
+
+        </div>
+
+
+        <div class="buttons"
+             id="buttons-{{ application.id }}">
+
+            {% if application.status == "running" %}
+
+                {% if application.type == "service" %}
+
+                    <form method="POST"
+                          action="/{{ application.id }}/stop">
+                        <button type="submit">
+                            STOP
+                        </button>
+                    </form>
+
+                    <form method="POST"
+                          action="/{{ application.id }}/restart">
+                        <button type="submit">
+                            RESTART
+                        </button>
+                    </form>
+
+                {% else %}
+
+                    <button type="button" disabled>
+                        CLOSE MANUALLY
+                    </button>
+
+                {% endif %}
+
+            {% else %}
+
+                <form method="POST"
+                      action="/{{ application.id }}/start">
+                    <button type="submit">
+                        START
+                    </button>
+                </form>
+
+            {% endif %}
+
+
+            {% if application.interface.type == "web" %}
+
+                <button type="button"
+                    onclick="window.open('{{ application.interface.url }}', '_blank')">
+                    OPEN
+                </button>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    {% endfor %}
+
+</main>
+
+
+<footer>
+
+    <span id="aioc-status" class="indicator">
+        <span class="dot">●</span> AIOC
+    </span>
+
+    <span id="network-status" class="indicator">
+        <span class="dot">●</span> Network
+    </span>
+
+</footer>
+
+
+<script>
+
+function updateIndicator(elementId, connected, name) {
+
+    const element = document.getElementById(elementId);
+
+    if (!element) {
+        return;
+    }
+
+    if (connected) {
+
+        element.classList.add("connected");
+        element.classList.remove("disconnected");
+
+        element.innerHTML =
+            '<span class="dot">●</span> ' +
+            name +
+            ' Connected';
+
+    } else {
+
+        element.classList.add("disconnected");
+        element.classList.remove("connected");
+
+        element.innerHTML =
+            '<span class="dot">●</span> ' +
+            name +
+            ' Disconnected';
+    }
+}
+
+
+function updateApplicationStatus(applicationId, status) {
+
+    const card =
+        document.getElementById("app-" + applicationId);
+
+    const statusElement =
+        document.getElementById("status-" + applicationId);
+
+    const buttonsElement =
+        document.getElementById("buttons-" + applicationId);
+
+    if (!card || !statusElement || !buttonsElement) {
+        return;
+    }
+
+
+    /*
+     * Update status text and color.
+     */
+
+    statusElement.classList.remove(
+        "running",
+        "stopped",
+        "failed"
+    );
+
+    statusElement.classList.add(status);
+
+
+    if (status === "running") {
+
+        statusElement.innerHTML = "● RUNNING";
+
+    } else if (status === "failed") {
+
+        statusElement.innerHTML = "● FAILED";
+
+    } else {
+
+        statusElement.innerHTML = "● STOPPED";
+    }
+
+
+    /*
+     * Determine what type of application this is.
+     */
+
+    const appType =
+        card.dataset.appType;
+
+    const interfaceType =
+        card.dataset.interfaceType;
+
+    const interfaceUrl =
+        card.dataset.interfaceUrl;
+
+    const openButton =
+        interfaceType === "web"
+        ? `
+            <button type="button"
+                    class="open-button">
+                OPEN
+            </button>
+          `
+        : "";
+
+
+    /*
+     * Services get full Start / Stop / Restart controls.
+     */
+
+    if (appType === "service") {
+
+        if (status === "running") {
+
+            buttonsElement.innerHTML = `
+                <form method="POST"
+                      action="/${applicationId}/stop">
+
+                    <button type="submit">
+                        STOP
+                    </button>
+
+                </form>
+
+                <form method="POST"
+                      action="/${applicationId}/restart">
+
+                    <button type="submit">
+                        RESTART
+                    </button>
+
+                </form>
+
+                ${openButton}
+            `;
+
+        } else {
+
+            buttonsElement.innerHTML = `
+                <form method="POST"
+                      action="/${applicationId}/start">
+
+                    <button type="submit">
+                        START
+                    </button>
+
+                </form>
+
+                ${openButton}
+            `;
+        }
+
+    /*
+     * Local GUI applications only have a START button.
+     * Once running, they must be closed manually.
+     */
+
+    } else {
+
+        if (status === "running") {
+
+            buttonsElement.innerHTML = `
+                <button type="button" disabled>
+                    CLOSE MANUALLY
+                </button>
+
+                ${openButton}
+            `;
+
+        } else {
+
+            buttonsElement.innerHTML = `
+                <form method="POST"
+                      action="/${applicationId}/start">
+
+                    <button type="submit">
+                        START
+                    </button>
+
+                </form>
+            `;
+        }
+    }
+
+
+    /*
+     * Reconnect the OPEN button after rebuilding the buttons.
+     */
+
+    if (interfaceType === "web") {
+
+        const newOpenButton =
+            buttonsElement.querySelector(".open-button");
+
+        if (newOpenButton) {
+
+            newOpenButton.addEventListener(
+                "click",
+                function () {
+                    window.open(
+                        interfaceUrl,
+                        "_blank"
+                    );
+                }
+            );
+        }
+    }
+}
+
+
+async function updateDashboard() {
+
+    try {
+
+        const response =
+            await fetch("/status");
+
+        if (!response.ok) {
+            return;
+        }
+
+        const status =
+            await response.json();
+
+
+        /*
+         * CPU
+         */
+
+        const cpuValue =
+            document.getElementById("cpu-value");
+
+        if (cpuValue) {
+            cpuValue.textContent =
+                Math.round(status.cpu);
+        }
+
+
+        /*
+         * RAM
+         */
+
+        const memoryValue =
+            document.getElementById("memory-value");
+
+        if (memoryValue) {
+            memoryValue.textContent =
+                Math.round(status.memory);
+        }
+
+
+        /*
+         * AIOC
+         */
+
+        updateIndicator(
+            "aioc-status",
+            status.aioc_connected,
+            "AIOC"
+        );
+
+
+        /*
+         * Network
+         */
+
+        updateIndicator(
+            "network-status",
+            status.network_connected,
+            "Network"
+        );
+
+
+        /*
+         * Applications
+         */
+
+        for (
+            const [applicationId, applicationStatus]
+            of Object.entries(status.applications)
+        ) {
+
+            updateApplicationStatus(
+                applicationId,
+                applicationStatus
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Unable to update dashboard:",
+            error
+        );
+    }
+}
+
+
+/*
+ * Initial update.
+ */
+
+updateDashboard();
+
+
+/*
+ * Refresh every 3 seconds.
+ */
+
+setInterval(
+    updateDashboard,
+    3000
+);
+
+</script>
+
+</body>
+</html>

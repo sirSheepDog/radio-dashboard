@@ -1,0 +1,54 @@
+applications:
+
+  - name: Graywolf
+    id: graywolf
+    type: service
+    service:
+      name: graywolf.service
+    interface:
+      type: web
+      url: http://localhost:8080
+      qr: true
+
+  - name: OpenWebRX
+    id: openwebrx
+    type: service
+    service:
+      name: openwebrx.service
+    interface:
+      type: web
+      url: http://localhost:8073
+      qr: true
+
+  - name: fldigi
+    id: fldigi
+    type: local
+    launch:
+      command:
+        - /usr/bin/fldigi
+      process: /usr/bin/fldigi
+    interface:
+      type: local
+      qr: false
+
+  - name: Open-SSTV
+    id: open-sstv
+    type: local
+    launch:
+      command:
+        - /opt/open-sstv/open-sstv
+      process: /opt/open-sstv/open-sstv
+    interface:
+      type: local
+      qr: false
+
+  - name: WSJT-X
+    id: wsjtx
+    type: local
+    launch:
+      command:
+        - /usr/bin/wsjtx
+      process: /usr/bin/wsjtx
+    interface:
+      type: local
+      qr: false
