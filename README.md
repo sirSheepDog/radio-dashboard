@@ -16,7 +16,7 @@ It is designed around an **800×600 touchscreen** (ah the joys of salvaging old 
 * Automatic status updates without page reloads
 * CPU and memory monitoring
 * Network connection status
-* AIOC USB connection status
+* [AIOC](https://github.com/skuep/AIOC) USB connection status
 * Start/stop/restart support for systemd services
 * Direct launching of local GUI applications
 * Detection of GUI applications that were launched or closed manually
@@ -66,8 +66,6 @@ Examples:
 These applications are launched directly into the user's graphical session.
 
 The dashboard intentionally **does not stop or restart GUI applications**. Once launched, they are closed manually from their own application window. The dashboard monitors their process status and updates the interface automatically.
-
-This avoids using VNC/noVNC or additional desktop-session wrappers.
 
 ---
 
@@ -407,7 +405,7 @@ Each application should be installed and tested independently before adding it t
 
 The dashboard and associated radio-station setup have been tested with:
 
-* **AIOC — All In One Cable**
+* **AIOC — All In One Cable** [link](https://github.com/skuep/AIOC)
 * **TIDRADIO H8**
 
 The AIOC is detected by the dashboard through its USB vendor/product identification.
@@ -438,6 +436,5 @@ The application configuration is intentionally separated from the dashboard code
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
 You should receive a copy of the GNU Affero General Public License along with this program. If not, see the official GNU project website for the license text.
-
 
 ---
